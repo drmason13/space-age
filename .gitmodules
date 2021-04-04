@@ -1,0 +1,6 @@
+[submodule "space-age"]
+	path = space-age
+	url = https://github.com/drmason13/space-age-exercism
+[submodule "space_age_derive"]
+	path = space_age_derive
+	url = https://github.com/drmason13/space-age-derive

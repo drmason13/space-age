@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+    "space-age",
+    "space_age_core",
+    "space_age_derive",
+]
