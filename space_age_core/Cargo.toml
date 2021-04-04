@@ -1,0 +1,7 @@
+[package]
+edition = "2018"
+name = "space_age_core"
+version = "1.2.0"
+
+[dependencies]
+space_age_derive = { path = "../space_age_derive/" }
