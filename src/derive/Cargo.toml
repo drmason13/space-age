@@ -1,17 +1,16 @@
 [package]
-name = "space-age"
+name = "space-age-derive"
 version = "0.1.0"
 authors = ["drmason13 <drmason13@users.noreply.github.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+proc-macro = true
+path = "mod.rs"
+
 [dependencies]
-
-[dependencies.derive]
-package = "space-age-derive"
-path = "src/derive"
-version = "0.1.0"  # Same as main version
-
-[workspace]
-members = ["src/derive"]
+proc-macro2 = "1.0.*"
+quote = "1.0.*"
+syn = { version = "1.0.*", features = [] }  # you may need "full" features
