@@ -33,7 +33,7 @@ pub fn planet(input: TokenStream) -> TokenStream {
     // bail if it doesn't exist
     if orbital_period_attr.is_none() {
         bail!(
-            "is missing its orbital_period attribute, e.g. #[orbital_period = 1.0]",
+            "missing orbital_period attribute, e.g. #[orbital_period = 1.0]",
             ident.span()
         )
     }
