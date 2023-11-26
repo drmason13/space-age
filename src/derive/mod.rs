@@ -1,7 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::spanned::Spanned;
-use syn::{parse_macro_input, DeriveInput, Lit, Meta};
+use syn::{parse_macro_input, DeriveInput, LitFloat};
 
 macro_rules! bail {( $err_msg:expr$(, $span:expr)? $(,)? ) => (
     {
@@ -28,7 +27,7 @@ pub fn planet(input: TokenStream) -> TokenStream {
     // find the attribute we care about
     let orbital_period_attr = attrs
         .iter()
-        .find(|attr| attr.path.is_ident("orbital_period"));
+        .find(|attr| attr.path().is_ident("orbital_period"));
 
     // bail if it doesn't exist
     if orbital_period_attr.is_none() {
@@ -38,26 +37,36 @@ pub fn planet(input: TokenStream) -> TokenStream {
         )
     }
 
-    match orbital_period_attr.unwrap().parse_meta() {
-        Ok(Meta::NameValue(value)) => {
-            if let Lit::Float(orbital_period) = value.lit {
-                // Build the output, possibly using quasi-quotation
-                let expanded = quote! {
+    let mut expanded: proc_macro2::TokenStream = proc_macro2::TokenStream::default();
+
+    if let Err(err) = orbital_period_attr.unwrap().parse_nested_meta(|meta| {
+        // parse the "path": `orbital_period`
+        if meta.path.is_ident("orbital_period") {
+            // consume the `=` sign, and return the remaining input, which should be the value
+            let value = meta.value()?;
+
+            // now we finally get to the value we want
+            if let Ok(orbital_period) = value.parse::<LitFloat>() {
+                // Build the output using quote
+                expanded = quote! {
                     impl ::space_age::Planet for #ident {
                         const ORBITAL_PERIOD: f64 = #orbital_period;
                     }
                 };
-
-                // Hand the output tokens back to the compiler
-                TokenStream::from(expanded)
+                Ok(())
             } else {
-                bail!("expected a float value, e.g. #[orbital_period = 1.0]")
+                Err(::syn::Error::new(
+                    value.span(),
+                    "expected a float value, e.g. #[orbital_period = 1.0]",
+                ))
             }
+        } else {
+            unreachable!()
         }
-        Ok(bad) => bail!(
-            "expected a NameValue style attribue, e.g. #[orbital_period = 1.0]",
-            bad.path().span()
-        ),
-        Err(_) => bail!("expected a NameValue style attribue, e.g. #[orbital_period = 1.0]",),
+    }) {
+        return err.to_compile_error().into();
     }
+
+    // Hand the output tokens back to the compiler
+    TokenStream::from(expanded)
 }

@@ -1,6 +1,6 @@
 [package]
 name = "space-age"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["drmason13 <drmason13@users.noreply.github.com>"]
 edition = "2018"
 
@@ -11,7 +11,7 @@ edition = "2018"
 [dependencies.derive]
 package = "space-age-derive"
 path = "src/derive"
-version = "0.1.0"  # Same as main version
+version = "0.2.0"  # Same as main version
 
 [workspace]
 members = ["src/derive"]
