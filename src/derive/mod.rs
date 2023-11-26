@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, LitFloat};
+use syn::{parse_macro_input, spanned::Spanned, DeriveInput, Lit};
 
 macro_rules! bail {( $err_msg:expr$(, $span:expr)? $(,)? ) => (
     {
@@ -26,46 +26,35 @@ pub fn planet(input: TokenStream) -> TokenStream {
 
     // find the attribute we care about
     let orbital_period_attr = attrs
-        .iter()
+        .into_iter()
         .find(|attr| attr.path().is_ident("orbital_period"));
 
-    // bail if it doesn't exist
-    if orbital_period_attr.is_none() {
+    let Some(orbital_period_attr) = orbital_period_attr else {
         bail!(
             "missing orbital_period attribute, e.g. #[orbital_period = 1.0]",
             ident.span()
         )
-    }
+    };
 
-    let mut expanded: proc_macro2::TokenStream = proc_macro2::TokenStream::default();
+    let syn::Meta::NameValue(meta_name_value) = orbital_period_attr.meta else {
+        bail!("expected a NameValue style attribue, e.g. #[orbital_period = 1.0]",)
+    };
+    let orbital_period = match meta_name_value.value {
+        syn::Expr::Lit(lit) => match lit.lit {
+            Lit::Float(value) => value,
+            _ => bail!(
+                "expected a float value, e.g. #[orbital_period = 1.0]",
+                lit.span(),
+            ),
+        },
+        _ => bail!("expected a float value, e.g. #[orbital_period = 1.0]"),
+    };
 
-    if let Err(err) = orbital_period_attr.unwrap().parse_nested_meta(|meta| {
-        // parse the "path": `orbital_period`
-        if meta.path.is_ident("orbital_period") {
-            // consume the `=` sign, and return the remaining input, which should be the value
-            let value = meta.value()?;
-
-            // now we finally get to the value we want
-            if let Ok(orbital_period) = value.parse::<LitFloat>() {
-                // Build the output using quote
-                expanded = quote! {
-                    impl ::space_age::Planet for #ident {
-                        const ORBITAL_PERIOD: f64 = #orbital_period;
-                    }
-                };
-                Ok(())
-            } else {
-                Err(::syn::Error::new(
-                    value.span(),
-                    "expected a float value, e.g. #[orbital_period = 1.0]",
-                ))
-            }
-        } else {
-            unreachable!()
+    let expanded: proc_macro2::TokenStream = quote! {
+        impl ::space_age::Planet for #ident {
+            const ORBITAL_PERIOD: f64 = #orbital_period;
         }
-    }) {
-        return err.to_compile_error().into();
-    }
+    };
 
     // Hand the output tokens back to the compiler
     TokenStream::from(expanded)
